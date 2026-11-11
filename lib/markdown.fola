@@ -1,0 +1,453 @@
+# Markdown to HTML, written in the subset of Fola the interpreter runs today.
+#
+# Supports ATX headings, paragraphs, fenced and indented code blocks, nested
+# ordered/unordered lists, block quotes, GitHub-style tables, thematic breaks,
+# raw HTML blocks, and inline code, links, images, autolinks, bold and italic.
+#
+# Interpreter constraints this file works around (see README):
+# no `case`, string interpolation, `next`/`break`, `||=`, `String#<<`,
+# lazy regex quantifiers, `sub` with a Regexp, Array#[start, len] or constants.
+
+# Per-page rendering state: link rewriting, heading ids and the page outline.
+class MarkdownContext
+  attr_reader :toc
+
+  # resolver: any object with `resolve(href)` returning the final href.
+  def initialize(resolver)
+    @resolver = resolver
+    @ids = {}
+    @toc = []
+  end
+
+  def link(href)
+    @resolver.resolve(href)
+  end
+
+  # A unique id for a heading, GitHub style ("Foo bar" => "foo-bar", "foo-bar-1").
+  def heading_id(text)
+    base = Markdown.slug(text)
+    if base.empty?
+      base = "section"
+    end
+    id = base
+    n = 1
+    while @ids.key?(id)
+      id = base + "-" + n.to_s
+      n += 1
+    end
+    @ids[id] = true
+    id
+  end
+
+  def add_toc(level, id, html)
+    @toc.push({ "level" => level, "id" => id, "html" => html })
+  end
+end
+
+module Markdown
+  def self.item_re
+    /^( *)([-*+]|[0-9]+[.)]) +(.*)$/
+  end
+
+  def self.empty_item_re
+    /^( *)([-*+]|[0-9]+[.)])$/
+  end
+
+  def self.table_sep_re
+    /^ *\|? *:?-+:? *(\| *:?-+:? *)*\|? *$/
+  end
+
+  def self.hr_re
+    /^ {0,3}((- *){3,}|(\* *){3,}|(_ *){3,})$/
+  end
+
+  def self.html_block_re
+    /^ {0,3}<(\/?(div|table|thead|tbody|tr|td|th|details|summary|p|pre|section|figure|img|a|h[1-6]|ul|ol|li|hr|br|dl|dt|dd|blockquote|iframe|video|picture|source)[ >\/]|!--)/
+  end
+
+
+  def self.escape(text)
+    text.gsub("&", "&amp;").gsub("<", "&lt;").gsub(">", "&gt;").gsub("\"", "&quot;")
+  end
+
+  def self.slug(text)
+    plain = text.gsub(/<[^>]*>/, "").gsub(/&[a-z]+;/, "").gsub(/&#[0-9]+;/, "")
+    plain.downcase.gsub(/[^a-z0-9 _-]/, "").strip.gsub(" ", "-")
+  end
+
+  def self.render(source, ctx)
+    lines = source.gsub("\r", "").gsub("\t", "    ").split("\n", -1)
+    render_lines(lines, ctx)
+  end
+
+  def self.indent_of(line)
+    line.match(/^( *)/)[1].length
+  end
+
+  def self.dedent(line, count)
+    lead = indent_of(line)
+    if lead > count
+      lead = count
+    end
+    line[lead, line.length]
+  end
+
+  def self.blank?(line)
+    line.strip.empty?
+  end
+
+  # ---------------------------------------------------------------- blocks
+
+  def self.render_lines(lines, ctx)
+    out = []
+    para = []
+    i = 0
+    while i < lines.length
+      line = lines[i]
+      fence = line.match(/^ *(```+|~~~+) *([A-Za-z0-9_+-]*)/)
+      heading = line.match(/^ {0,3}(#+) +(.*)$/)
+      if !heading.nil? && heading[1].length > 6
+        heading = nil
+      end
+      quoted = line.match(/^ {0,3}> ?(.*)$/)
+      item = line.match(Markdown.item_re)
+
+      if !fence.nil?
+        flush_paragraph(para, out, ctx)
+        para = []
+        i = fenced_code(lines, i, fence, out)
+      elsif blank?(line)
+        flush_paragraph(para, out, ctx)
+        para = []
+        i += 1
+      elsif para.empty? && indent_of(line) >= 4
+        i = indented_code(lines, i, out)
+      elsif !heading.nil?
+        flush_paragraph(para, out, ctx)
+        para = []
+        render_heading(heading[1].length, heading[2], out, ctx)
+        i += 1
+      elsif line.match?(Markdown.hr_re)
+        flush_paragraph(para, out, ctx)
+        para = []
+        out.push("<hr>")
+        i += 1
+      elsif !quoted.nil?
+        flush_paragraph(para, out, ctx)
+        para = []
+        i = blockquote(lines, i, out, ctx)
+      elsif line.strip.start_with?("|") && i + 1 < lines.length && lines[i + 1].match?(Markdown.table_sep_re)
+        flush_paragraph(para, out, ctx)
+        para = []
+        i = table(lines, i, out, ctx)
+      elsif !item.nil? || line.match?(Markdown.empty_item_re)
+        flush_paragraph(para, out, ctx)
+        para = []
+        i = list(lines, i, out, ctx)
+      elsif para.empty? && line.match?(Markdown.html_block_re)
+        i = html_block(lines, i, out)
+      else
+        para.push(line.strip)
+        i += 1
+      end
+    end
+    flush_paragraph(para, out, ctx)
+    out.join("\n")
+  end
+
+  def self.flush_paragraph(para, out, ctx)
+    if !para.empty?
+      out.push("<p>" + inline(para.join("\n"), ctx) + "</p>")
+    end
+  end
+
+  def self.render_heading(level, raw, out, ctx)
+    text = raw.gsub(/ +#+ *$/, "").strip
+    html = inline(text, ctx)
+    id = ctx.heading_id(html)
+    if level == 2 || level == 3
+      ctx.add_toc(level, id, html)
+    end
+    tag = "h" + level.to_s
+    out.push("<" + tag + " id=\"" + id + "\">" + html +
+             "<a class=\"anchor\" href=\"#" + id + "\" aria-label=\"Link to this section\">#</a></" + tag + ">")
+  end
+
+  def self.fenced_code(lines, i, fence, out)
+    marker = fence[1]
+    lang = fence[2]
+    code = []
+    i += 1
+    done = false
+    while i < lines.length && !done
+      if lines[i].strip.start_with?(marker) && lines[i].strip.gsub(marker[0], "").empty?
+        done = true
+      else
+        code.push(lines[i])
+      end
+      i += 1
+    end
+    cls = ""
+    if !lang.empty?
+      cls = " class=\"language-" + lang.downcase + "\""
+    end
+    out.push("<pre><code" + cls + ">" + escape(code.join("\n")) + "</code></pre>")
+    i
+  end
+
+  def self.indented_code(lines, i, out)
+    code = []
+    going = true
+    while i < lines.length && going
+      line = lines[i]
+      if indent_of(line) >= 4
+        code.push(dedent(line, 4))
+        i += 1
+      elsif blank?(line) && i + 1 < lines.length && indent_of(lines[i + 1]) >= 4
+        code.push("")
+        i += 1
+      else
+        going = false
+      end
+    end
+    out.push("<pre><code>" + escape(code.join("\n")) + "</code></pre>")
+    i
+  end
+
+  def self.blockquote(lines, i, out, ctx)
+    inner = []
+    going = true
+    while i < lines.length && going
+      m = lines[i].match(/^ {0,3}> ?(.*)$/)
+      if !m.nil?
+        inner.push(m[1])
+        i += 1
+      elsif !blank?(lines[i]) && !inner.empty? && !blank?(inner.last)
+        inner.push(lines[i])   # lazy continuation
+        i += 1
+      else
+        going = false
+      end
+    end
+    out.push("<blockquote>\n" + render_lines(inner, ctx) + "\n</blockquote>")
+    i
+  end
+
+  def self.html_block(lines, i, out)
+    raw = []
+    while i < lines.length && !blank?(lines[i])
+      raw.push(lines[i])
+      i += 1
+    end
+    out.push(raw.join("\n"))
+    i
+  end
+
+  # ---------------------------------------------------------------- tables
+
+  def self.cells(line)
+    s = line.strip.gsub("\\|", "@@PIPE@@")
+    if s.start_with?("|")
+      s = s[1, s.length]
+    end
+    if s.end_with?("|")
+      s = s[0, s.length - 1]
+    end
+    s.split("|", -1).map { |c| c.strip.gsub("@@PIPE@@", "|") }
+  end
+
+  def self.table(lines, i, out, ctx)
+    head = cells(lines[i])
+    aligns = cells(lines[i + 1]).map do |c|
+      if c.start_with?(":") && c.end_with?(":")
+        " style=\"text-align:center\""
+      elsif c.end_with?(":")
+        " style=\"text-align:right\""
+      else
+        ""
+      end
+    end
+    i += 2
+    html = ["<div class=\"table-wrap\"><table>", "<thead><tr>"]
+    col = 0
+    while col < head.length
+      html.push("<th" + (aligns[col] || "") + ">" + inline(head[col], ctx) + "</th>")
+      col += 1
+    end
+    html.push("</tr></thead>", "<tbody>")
+    while i < lines.length && lines[i].strip.start_with?("|")
+      row = cells(lines[i])
+      html.push("<tr>")
+      col = 0
+      while col < head.length
+        text = row[col] || ""
+        html.push("<td" + (aligns[col] || "") + ">" + inline(text, ctx) + "</td>")
+        col += 1
+      end
+      html.push("</tr>")
+      i += 1
+    end
+    html.push("</tbody></table></div>")
+    out.push(html.join(""))
+    i
+  end
+
+  # ----------------------------------------------------------------- lists
+
+  def self.ordered_marker?(marker)
+    marker.match?(/^[0-9]/)
+  end
+
+  # Parse one list starting at lines[i]; returns the index after it.
+  def self.list(lines, i, out, ctx)
+    first = lines[i].match(Markdown.item_re)
+    if first.nil?
+      first = lines[i].match(Markdown.empty_item_re)
+    end
+    indent = first[1].length
+    ordered = ordered_marker?(first[2])
+    start = 1
+    if ordered
+      start = first[2].to_i
+    end
+    items = []
+    loose = false
+    in_list = true
+
+    while i < lines.length && in_list
+      m = lines[i].match(Markdown.item_re)
+      if m.nil?
+        m = lines[i].match(Markdown.empty_item_re)
+      end
+      if !m.nil? && m[1].length == indent && ordered_marker?(m[2]) == ordered
+        text = ""
+        if lines[i].match?(Markdown.item_re)
+          text = m[3]
+        end
+        content = [text]
+        content_indent = indent + m[2].length + 1
+        i += 1
+        in_item = true
+        while i < lines.length && in_item
+          line = lines[i]
+          if blank?(line)
+            # Keep the blank only when the item (or a sibling) continues.
+            j = i
+            while j < lines.length && blank?(lines[j])
+              j += 1
+            end
+            if j < lines.length && indent_of(lines[j]) > indent
+              content.push("")
+              i += 1
+            elsif j < lines.length && lines[j].match?(Markdown.item_re) && indent_of(lines[j]) == indent &&
+                  ordered_marker?(lines[j].match(Markdown.item_re)[2]) == ordered
+              loose = true
+              i = j
+              in_item = false
+            else
+              in_item = false
+            end
+          elsif indent_of(line) > indent
+            content.push(dedent(line, content_indent))
+            i += 1
+          elsif !line.match?(Markdown.item_re) && !blank?(content.last) && !line.match?(Markdown.hr_re) &&
+                !line.strip.start_with?("#") && !line.strip.start_with?("```") && !line.strip.start_with?("|")
+            content.push(line.strip)   # lazy continuation of the item's paragraph
+            i += 1
+          else
+            in_item = false
+          end
+        end
+        if content.include?("")
+          loose = true
+        end
+        items.push(content)
+      else
+        in_list = false
+      end
+    end
+
+    tag = ordered ? "ol" : "ul"
+    open = "<" + tag
+    if ordered && start != 1
+      open = open + " start=\"" + start.to_s + "\""
+    end
+    html = [open + ">"]
+    items.each do |content|
+      body = render_lines(content, ctx)
+      if !loose
+        body = unwrap_first_paragraph(body)
+      end
+      html.push("<li>" + body + "</li>")
+    end
+    html.push("</" + tag + ">")
+    out.push(html.join("\n"))
+    i
+  end
+
+  # Tight list items show their text without a <p> wrapper.
+  def self.unwrap_first_paragraph(body)
+    if body.start_with?("<p>") && body.include?("</p>")
+      parts = body.split("</p>", -1)
+      rest = []
+      k = 1
+      while k < parts.length
+        rest.push(parts[k])
+        k += 1
+      end
+      return parts[0][3, parts[0].length] + rest.join("</p>")
+    end
+    body
+  end
+
+  # ---------------------------------------------------------------- inline
+
+  def self.inline(text, ctx)
+    stash = []
+    # Code spans first, so nothing inside them is touched.
+    s = text.gsub(/``+ ?([^`]|[^`].*[^`]) ?``+|`[^`]+`/) do |m|
+      code = m.gsub(/^`+ ?/, "").gsub(/ ?`+$/, "")
+      stash.push("<code>" + escape(code) + "</code>")
+      "@@S" + (stash.length - 1).to_s + "@@"
+    end
+    # Backslash escapes.
+    s = s.gsub(/\\([\\`*_\[\]()#+.!|<>-])/) do |m|
+      stash.push(escape(m[1, 1]))
+      "@@S" + (stash.length - 1).to_s + "@@"
+    end
+    # Raw inline HTML tags that docs use for anchors and line breaks.
+    s = s.gsub(/<(\/?(a|br|kbd|sup|sub|span|code|em|strong|abbr)( [^<>]*)?\/?)>/) do |m|
+      stash.push(m)
+      "@@S" + (stash.length - 1).to_s + "@@"
+    end
+    s = escape(s)
+    # Autolinks.
+    s = s.gsub(/&lt;(https?:\/\/[^ &]+)&gt;/) do |m|
+      url = m.match(/&lt;(.*)&gt;/)[1]
+      stash.push("<a href=\"" + url + "\">" + url + "</a>")
+      "@@S" + (stash.length - 1).to_s + "@@"
+    end
+    # Images, then links.
+    s = s.gsub(/!\[([^\]]*)\]\(([^) ]+)\)/) do |m|
+      md = m.match(/!\[([^\]]*)\]\(([^) ]+)\)/)
+      "<img src=\"" + ctx.link(md[2]) + "\" alt=\"" + md[1] + "\" loading=\"lazy\">"
+    end
+    s = s.gsub(/\[([^\]]+)\]\(([^) ]+)( &quot;[^&]*&quot;)?\)/) do |m|
+      md = m.match(/\[([^\]]+)\]\(([^) ]+)/)
+      href = ctx.link(md[2].gsub("&amp;", "&"))
+      "<a href=\"" + escape(href) + "\">" + md[1] + "</a>"
+    end
+    s = s.gsub(/\*\*([^*]+)\*\*/, "<strong>\\1</strong>")
+    s = s.gsub(/__([^_]+)__/, "<strong>\\1</strong>")
+    s = s.gsub(/\*([^* ][^*]*)\*/, "<em>\\1</em>")
+    s = s.gsub(/(^|[ (])_([^_ ][^_]*)_([ .,;:)!?]|$)/, "\\1<em>\\2</em>\\3")
+    s = s.gsub(/ {2,}\n/, "<br>\n")
+    # Restore stashed fragments (stash entries can nest earlier stash tokens).
+    guard = 0
+    while s.include?("@@S") && guard < 5
+      s = s.gsub(/@@S[0-9]+@@/) { |m| stash[m.gsub("@@S", "").gsub("@@", "").to_i] }
+      guard += 1
+    end
+    s
+  end
+end

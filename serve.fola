@@ -1,0 +1,49 @@
+# Local preview of ./public at http://127.0.0.1:4000 (build first).
+#
+#   fola run build.fola && fola run serve.fola [port]
+
+require 'fola/web'
+require 'socket'
+
+# Answers anything Static didn't find with the site's 404 page.
+class NotFound
+  def call(env)
+    body = "not found"
+    if File.exist?("public/404.html")
+      body = File.read("public/404.html")
+    end
+    [404, { "content-type" => "text/html; charset=utf-8" }, [body]]
+  end
+end
+
+port = (ARGV[0] || "4000").to_i
+
+# Connections are served one at a time (see below), so a browser's idle
+# keep-alive connection would block its other requests. Close after each.
+class CloseConnection
+  def initialize(app)
+    @app = app
+  end
+
+  def call(env)
+    res = @app.call(env)
+    res[1]["connection"] = "close"
+    res
+  end
+end
+
+app = Fola::Web::Builder.new do |b|
+  b.use CloseConnection
+  b.use Fola::Web::Static, root: "public", index: "index.html", cache_control: "no-cache"
+  b.run NotFound.new
+end
+
+server = TCPServer.new("127.0.0.1", port)
+puts "serving public/ at http://127.0.0.1:" + port.to_s + " (Ctrl+C to stop)"
+# One connection at a time: `server.accept` currently holds the interpreter
+# lock while it waits, so a Thread per connection would never get to run.
+while true
+  conn = server.accept
+  Fola::Web.handle(app, conn)
+  conn.close
+end

@@ -1,0 +1,38 @@
+<div class="doc-shell">
+  <% if !pages.empty? %>
+  <aside class="sidebar" aria-label="<%= section_title %> pages">
+    <p class="sidebar-title"><%= section_title %></p>
+    <ul>
+      <% pages.each do |p| %><li><a href="<%= p.url %>"<% if p.url == page.url %> aria-current="page"<% end %>><%= p.title %></a></li><% end %>
+    </ul>
+  </aside>
+  <% end %>
+
+  <article class="doc">
+    <% if !section_title.empty? %><p class="eyebrow"><%= section_title %></p><% end %>
+    <h1><%= page.title %></h1>
+    <% if !page.description.empty? %><p class="lede"><%= page.description %></p><% end %>
+    <div class="prose">
+<%== page.html %>
+    </div>
+
+    <% if !page.prev_page.nil? || !page.next_page.nil? %>
+    <nav class="pager" aria-label="Previous and next pages">
+      <% if !page.prev_page.nil? %><a class="prev" href="<%= page.prev_page.url %>"><span>Previous</span><%= page.prev_page.title %></a><% else %><span></span><% end %>
+      <% if !page.next_page.nil? %><a class="next" href="<%= page.next_page.url %>"><span>Next</span><%= page.next_page.title %></a><% end %>
+    </nav>
+    <% end %>
+    <% if !page.source_path.empty? %>
+    <p class="edit"><a href="<%= page.edit_url %>">Edit this page on GitHub</a></p>
+    <% end %>
+  </article>
+
+  <% if page.toc.length > 1 %>
+  <aside class="toc" aria-label="On this page">
+    <p class="toc-title">On this page</p>
+    <ul>
+      <% page.toc.each do |t| %><li class="toc-l<%= t["level"] %>"><a href="#<%= t["id"] %>"><%== t["html"] %></a></li><% end %>
+    </ul>
+  </aside>
+  <% end %>
+</div>

@@ -1,0 +1,189 @@
+title: Fola
+tagline: A Ruby-like language with a Zig heart
+description: Fola is a Ruby-like programming language implemented in Zig, with a bytecode VM, gradual typing, a batteries-included standard library and a WebAssembly runtime.
+base_url: https://fola.dev
+repo: https://github.com/kamalogudah/fola
+site_repo: https://github.com/kamalogudah/fola_dev
+output: public
+
+# Sections appear in the header in this order. Each page belongs to one.
+sections:
+  - id: learn
+    title: Learn
+  - id: tutorials
+    title: Tutorials
+  - id: spec
+    title: Spec
+  - id: guides
+    title: Guides
+  - id: stdlib
+    title: Stdlib
+  - id: contribute
+    title: Contribute
+
+# Markdown pulled straight from the Fola repository (FOLA_REPO, default
+# ../fola) at build time, so the reference never drifts from the code.
+# The page title comes from the file's first "# " heading.
+imports:
+  - src: docs/stdlib/README.md
+    url: /stdlib/
+    section: stdlib
+    order: 0
+    title: Overview
+  - src: docs/stdlib/kernel.md
+    url: /stdlib/kernel/
+    section: stdlib
+    order: 1
+  - src: docs/stdlib/numeric.md
+    url: /stdlib/numeric/
+    section: stdlib
+    order: 2
+  - src: docs/stdlib/string.md
+    url: /stdlib/string/
+    section: stdlib
+    order: 3
+  - src: docs/stdlib/array.md
+    url: /stdlib/array/
+    section: stdlib
+    order: 4
+  - src: docs/stdlib/hash.md
+    url: /stdlib/hash/
+    section: stdlib
+    order: 5
+  - src: docs/stdlib/collections.md
+    url: /stdlib/collections/
+    section: stdlib
+    order: 6
+  - src: docs/stdlib/io.md
+    url: /stdlib/io/
+    section: stdlib
+    order: 7
+  - src: docs/stdlib/process.md
+    url: /stdlib/process/
+    section: stdlib
+    order: 8
+  - src: docs/stdlib/time.md
+    url: /stdlib/time/
+    section: stdlib
+    order: 9
+  - src: docs/stdlib/formats.md
+    url: /stdlib/formats/
+    section: stdlib
+    order: 10
+  - src: docs/stdlib/net.md
+    url: /stdlib/net/
+    section: stdlib
+    order: 11
+  - src: docs/stdlib/web.md
+    url: /stdlib/web/
+    section: stdlib
+    order: 12
+
+  - src: docs/type-system.md
+    url: /spec/types/
+    section: spec
+    order: 50
+  - src: docs/translation-pipeline.md
+    url: /spec/translation/
+    section: spec
+    order: 60
+
+  - src: docs/cli.md
+    url: /guides/cli/
+    section: guides
+    order: 1
+  - src: docs/folaspec.md
+    url: /guides/testing/
+    section: guides
+    order: 2
+  - src: docs/concurrency.md
+    url: /guides/concurrency/
+    section: guides
+    order: 3
+  - src: docs/databases.md
+    url: /guides/databases/
+    section: guides
+    order: 4
+  - src: docs/persistence.md
+    url: /guides/persistence/
+    section: guides
+    order: 5
+  - src: docs/jobs.md
+    url: /guides/jobs/
+    section: guides
+    order: 6
+  - src: docs/i18n.md
+    url: /guides/i18n/
+    section: guides
+    order: 7
+  - src: docs/crypto.md
+    url: /guides/crypto/
+    section: guides
+    order: 8
+  - src: docs/security.md
+    url: /guides/security/
+    section: guides
+    order: 9
+  - src: docs/observability.md
+    url: /guides/observability/
+    section: guides
+    order: 10
+  - src: docs/profiling.md
+    url: /guides/profiling/
+    section: guides
+    order: 11
+  - src: docs/ffi.md
+    url: /guides/ffi/
+    section: guides
+    order: 12
+  - src: docs/native_extensions.md
+    url: /guides/native-extensions/
+    section: guides
+    order: 13
+  - src: docs/webassembly.md
+    url: /guides/webassembly/
+    section: guides
+    order: 14
+  - src: docs/folagem-format.md
+    url: /guides/packages/
+    section: guides
+    order: 15
+  - src: docs/documentation-extraction.md
+    url: /guides/docs/
+    section: guides
+    order: 16
+
+  - src: CONTRIBUTING.md
+    url: /contribute/
+    section: contribute
+    order: 0
+    title: Contributing
+  - src: docs/getting-started.md
+    url: /contribute/building/
+    section: contribute
+    order: 1
+    title: Building from source
+  - src: docs/architecture.md
+    url: /contribute/architecture/
+    section: contribute
+    order: 2
+  - src: docs/ast-overview.md
+    url: /contribute/ast/
+    section: contribute
+    order: 3
+  - src: docs/prism-bindings.md
+    url: /contribute/prism/
+    section: contribute
+    order: 4
+  - src: docs/compilation.md
+    url: /contribute/compilation/
+    section: contribute
+    order: 5
+  - src: docs/memory-strategy.md
+    url: /contribute/memory/
+    section: contribute
+    order: 6
+  - src: docs/benchmarks.md
+    url: /contribute/benchmarks/
+    section: contribute
+    order: 7

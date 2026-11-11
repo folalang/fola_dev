@@ -1,0 +1,73 @@
+# Builds fola.dev into ./public. Run from this directory:
+#
+#   fola run build.fola              # docs imported from ../fola
+#   FOLA_REPO=/path/to/fola fola run build.fola
+#
+# Everything here — Markdown rendering, templating, link rewriting, the
+# search index — is plain Fola running on the Fola interpreter.
+
+require 'fola/web'
+require "./lib/markdown"
+require "./lib/site"
+
+started = Time.now
+root = Dir.pwd
+fola_repo = ENV["FOLA_REPO"] || File.expand_path("../fola", root)
+
+site = Site.new(root, fola_repo)
+site.load_imports
+site.load_content
+site.link_pages
+site.render_markdown
+
+FileUtils.rm_rf(site.out)
+FileUtils.mkdir_p(site.out)
+
+layouts = {
+  "doc" => Fola::Web::Template.load(root + "/templates/doc.erb"),
+  "home" => Fola::Web::Template.load(root + "/templates/home.erb")
+}
+shell = Fola::Web::Template.load(root + "/templates/layout.erb")
+
+site.pages.each do |page|
+  inner = layouts[page.layout]
+  if inner.nil?
+    raise "unknown layout " + page.layout + " in " + page.source_path
+  end
+  locals = {
+    site: site,
+    page: page,
+    pages: site.section_pages(page.section),
+    section_title: site.section_title(page.section)
+  }
+  content = inner.render(locals)
+  html = shell.render({ site: site, page: page, nav: site.nav(page), content: content })
+  site.write_file(page.output_file(site.out), html)
+end
+
+# Static assets, the browser playground and the WebAssembly runtime.
+FileUtils.cp_r(root + "/assets", site.out + "/assets")
+play = site.out + "/play"
+FileUtils.mkdir_p(play)
+Dir.glob(fola_repo + "/web/playground/*").each { |f| FileUtils.cp(f, play) }
+FileUtils.cp(fola_repo + "/web/fola.mjs", play)   # the JS loader playground.js imports
+wasm = fola_repo + "/zig-out/bin/fola-web.wasm"
+if File.exist?(wasm)
+  FileUtils.cp(wasm, play)
+else
+  puts "warning: " + wasm + " not found; run `zig build web` in the fola repo for a working playground"
+end
+
+site.write_file(site.out + "/search.json", site.search_index)
+site.write_file(site.out + "/sitemap.xml", site.sitemap)
+site.write_file(site.out + "/robots.txt", "User-agent: *\nAllow: /\nSitemap: " + site.config["base_url"] + "/sitemap.xml\n")
+site.write_file(site.out + "/CNAME", site.config["base_url"].gsub("https://", "") + "\n")
+not_found = Page.new("generated/404", "/404.html", "", 0, "Page not found", "", "doc",
+                     "", "", site.config["site_repo"])
+not_found.html = "<p>That page doesn't exist. Try the search box above, or head back to the <a href=\"/\">home page</a>.</p>"
+site.write_file(site.out + "/404.html",
+                shell.render({ site: site, page: not_found, nav: site.nav(not_found),
+                               content: layouts["doc"].render({ site: site, page: not_found, pages: [], section_title: "" }) }))
+
+elapsed = ((Time.now - started) * 1000).to_i
+puts "built " + site.pages.length.to_s + " pages into " + site.config["output"] + "/ in " + elapsed.to_s + "ms"

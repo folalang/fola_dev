@@ -1,0 +1,83 @@
+name: Build and deploy fola.dev
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # Rebuild when the Fola repo's docs change: its CI can send
+  #   gh api repos/kamalogudah/fola_dev/dispatches -f event_type=fola-docs-updated
+  repository_dispatch:
+    types: [fola-docs-updated]
+  # And nightly, so the imported reference never drifts far from fola@main.
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout site
+        uses: actions/checkout@v4
+
+      - name: Checkout Fola
+        uses: actions/checkout@v4
+        with:
+          repository: kamalogudah/fola
+          ref: main
+          path: fola
+          submodules: recursive
+
+      - name: Setup Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Install system libraries
+        run: sudo apt-get update && sudo apt-get install -y libreadline-dev libffi-dev
+
+      - name: Generate Prism template sources
+        working-directory: fola/vendor/prism
+        run: ruby templates/template.rb
+
+      - name: Build Fola (native + browser runtime)
+        working-directory: fola
+        run: zig build -Doptimize=ReleaseSafe
+
+      - name: Check runnable examples
+        run: scripts/check-examples.sh "$GITHUB_WORKSPACE/fola/zig-out/bin/fola"
+
+      - name: Build site
+        env:
+          FOLA_REPO: ${{ github.workspace }}/fola
+        run: fola/zig-out/bin/fola run build.fola
+
+      - name: Check links
+        run: scripts/check-links.sh
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

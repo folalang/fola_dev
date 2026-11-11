@@ -1,0 +1,303 @@
+# The site model: pages, sections, link resolution and output.
+
+module Paths
+  # "a/b/../c/./d" => "a/c/d"
+  def self.normalize(path)
+    parts = []
+    path.split("/").each do |part|
+      if part == ".." && !parts.empty?
+        parts.pop
+      elsif part != "." && part != ""
+        parts.push(part)
+      end
+    end
+    parts.join("/")
+  end
+
+  def self.dirname(path)
+    if path.include?("/")
+      File.dirname(path)
+    else
+      ""
+    end
+  end
+
+  def self.join(dir, rel)
+    if dir.empty?
+      normalize(rel)
+    else
+      normalize(dir + "/" + rel)
+    end
+  end
+end
+
+class Page
+  attr_reader :key, :url, :section, :order, :title, :description, :layout, :body, :source_path, :edit_url
+  attr_accessor :html, :toc, :prev_page, :next_page
+
+  # key: a stable id for link resolution ("repo/docs/x.md", "content/learn/x.md").
+  def initialize(key, url, section, order, title, description, layout, body, source_path, edit_url)
+    @key = key
+    @url = url
+    @section = section
+    @order = order
+    @title = title
+    @description = description
+    @layout = layout
+    @body = body
+    @source_path = source_path
+    @edit_url = edit_url
+    @html = ""
+    @toc = []
+    @prev_page = nil
+    @next_page = nil
+  end
+
+  def from_repo?
+    @key.start_with?("repo/")
+  end
+
+  def output_file(root)
+    if @url == "/"
+      root + "/index.html"
+    elsif @url.end_with?("/")
+      root + @url + "index.html"
+    else
+      root + @url
+    end
+  end
+end
+
+# Rewrites relative Markdown links (`string.md#split`, `../README.md`) to site
+# URLs; links to repo files that aren't pages go to GitHub.
+class LinkResolver
+  def initialize(page, site)
+    @page = page
+    @site = site
+  end
+
+  def resolve(href)
+    if href.start_with?("http:") || href.start_with?("https:") || href.start_with?("mailto:") ||
+       href.start_with?("#") || href.start_with?("/")
+      return href
+    end
+    parts = href.split("#", 2)
+    path = parts[0]
+    frag = ""
+    if parts.length > 1
+      frag = "#" + parts[1]
+    end
+    target = Paths.join(Paths.dirname(@page.key), path)
+    found = @site.page_for_key(target)
+    if !found.nil?
+      return found.url + frag
+    end
+    if target.start_with?("repo/")
+      repo_path = target[5, target.length]
+      kind = "blob"
+      if path.end_with?("/") || !repo_path.include?(".")
+        kind = "tree"
+      end
+      return @site.config["repo"] + "/" + kind + "/main/" + repo_path + frag
+    end
+    href
+  end
+end
+
+class Site
+  attr_reader :config, :pages, :root, :fola_repo, :out
+
+  def initialize(root, fola_repo)
+    @root = root
+    @fola_repo = fola_repo
+    @config = YAML.parse(File.read(root + "/site.yml"))
+    @out = root + "/" + @config["output"]
+    @pages = []
+    @by_key = {}
+  end
+
+  def page_for_key(key)
+    @by_key[key]
+  end
+
+  def add(page)
+    if @by_key.key?(page.key)
+      raise "duplicate page " + page.key
+    end
+    @pages.push(page)
+    @by_key[page.key] = page
+  end
+
+  # ------------------------------------------------------------- loading
+
+  # Split "---\nkey: value\n---\nbody" into [meta_hash, body].
+  def self.front_matter(text)
+    lines = text.split("\n", -1)
+    if lines.empty? || lines[0].strip != "---"
+      return [{}, text]
+    end
+    i = 1
+    yaml = []
+    while i < lines.length && lines[i].strip != "---"
+      yaml.push(lines[i])
+      i += 1
+    end
+    rest = []
+    i += 1
+    while i < lines.length
+      rest.push(lines[i])
+      i += 1
+    end
+    meta = {}
+    if !yaml.empty?
+      meta = YAML.parse(yaml.join("\n") + "\n")
+    end
+    [meta, rest.join("\n")]
+  end
+
+  # Remove a leading "# Title" line; return [title_or_nil, body].
+  def self.take_title(body)
+    lines = body.split("\n", -1)
+    i = 0
+    while i < lines.length && lines[i].strip.empty?
+      i += 1
+    end
+    if i < lines.length && lines[i].start_with?("# ")
+      title = lines[i][2, lines[i].length].strip
+      rest = []
+      i += 1
+      while i < lines.length
+        rest.push(lines[i])
+        i += 1
+      end
+      return [title, rest.join("\n")]
+    end
+    [nil, body]
+  end
+
+  def self.plain(text)
+    text.gsub(/`([^`]*)`/, "\\1").gsub(/\*+/, "").gsub(/<[^>]*>/, "").strip
+  end
+
+  def load_imports
+    imports = @config["imports"] || []
+    imports.each do |imp|
+      path = @fola_repo + "/" + imp["src"]
+      if !File.exist?(path)
+        raise "missing import " + path + " (set FOLA_REPO to your fola checkout)"
+      end
+      split = Site.take_title(File.read(path))
+      title = imp["title"] || Site.plain(split[0] || File.basename(path, ".md"))
+      edit = @config["repo"] + "/edit/main/" + imp["src"]
+      add(Page.new("repo/" + imp["src"], imp["url"], imp["section"], imp["order"] || 100, title,
+                   imp["description"] || "", imp["layout"] || "doc", split[1], path, edit))
+    end
+  end
+
+  def load_content
+    dir = @root + "/content"
+    Dir.glob(dir + "/**/*.md").sort.each do |path|
+      rel = path[dir.length + 1, path.length]
+      fm = Site.front_matter(File.read(path))
+      meta = fm[0]
+      split = Site.take_title(fm[1])
+      url = meta["url"]
+      if url.nil?
+        url = "/" + rel.gsub(/\.md$/, "/").gsub(/(^|\/)index\/$/, "\\1")
+        if url == "/index/"
+          url = "/"
+        end
+      end
+      section = meta["section"]
+      if section.nil?
+        section = rel.split("/")[0].gsub(/\.md$/, "")
+      end
+      title = meta["title"] || split[0] || File.basename(path, ".md")
+      edit = @config["site_repo"] + "/edit/main/content/" + rel
+      add(Page.new("content/" + rel, url, section, meta["order"] || 100, title,
+                   meta["description"] || "", meta["layout"] || "doc", split[1], path, edit))
+    end
+  end
+
+  # ------------------------------------------------------------- queries
+
+  def section_pages(id)
+    list = @pages.select { |p| p.section == id && p.layout != "home" }
+    list.sort do |a, b|
+      if a.order == b.order
+        a.title <=> b.title
+      else
+        a.order <=> b.order
+      end
+    end
+  end
+
+  def section_title(id)
+    found = @config["sections"].find { |s| s["id"] == id }
+    if found.nil?
+      return ""
+    end
+    found["title"]
+  end
+
+  # [[title, url, active], ...] for the header.
+  def nav(current)
+    @config["sections"].map do |s|
+      first = section_pages(s["id"]).first
+      url = "/"
+      if !first.nil?
+        url = first.url
+      end
+      [s["title"], url, current.section == s["id"]]
+    end
+  end
+
+  def link_pages
+    @config["sections"].each do |s|
+      list = section_pages(s["id"])
+      k = 0
+      while k < list.length
+        if k > 0
+          list[k].prev_page = list[k - 1]
+        end
+        if k + 1 < list.length
+          list[k].next_page = list[k + 1]
+        end
+        k += 1
+      end
+    end
+  end
+
+  # ------------------------------------------------------------- output
+
+  def render_markdown
+    @pages.each do |page|
+      ctx = MarkdownContext.new(LinkResolver.new(page, self))
+      page.html = Markdown.render(page.body, ctx)
+      page.toc = ctx.toc
+    end
+  end
+
+  def write_file(path, text)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, text)
+  end
+
+  def search_index
+    entries = @pages.map do |p|
+      heads = p.toc.map { |t| Site.plain(t["html"]) }
+      { "t" => p.title, "u" => p.url, "s" => section_title(p.section), "h" => heads.join(" · ") }
+    end
+    JSON.generate(entries)
+  end
+
+  def sitemap
+    lines = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>",
+             "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">"]
+    @pages.each do |p|
+      lines.push("  <url><loc>" + @config["base_url"] + p.url + "</loc></url>")
+    end
+    lines.push("</urlset>")
+    lines.join("\n") + "\n"
+  end
+end

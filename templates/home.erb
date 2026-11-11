@@ -1,0 +1,87 @@
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-copy">
+      <p class="eyebrow">v0.0.1 · early development · MIT</p>
+      <h1>Ruby’s ergonomics.<br>Zig’s runtime.</h1>
+      <p class="lede">Fola is a Ruby-like programming language with a bytecode VM written in Zig. You get Ruby syntax and a batteries-included standard library, and a single static binary that also compiles to WebAssembly. Gradual typing is on the way.</p>
+      <div class="cta">
+        <a class="button primary" href="/learn/">Get started</a>
+        <a class="button" href="/play/">Try it in your browser</a>
+      </div>
+      <pre class="install"><code class="language-sh">git clone --recursive <%= site.config["repo"] %> &amp;&amp; cd fola &amp;&amp; zig build</code></pre>
+    </div>
+    <div class="hero-code">
+      <div class="window">
+        <div class="window-bar"><span></span><span></span><span></span><em>hello.fola</em></div>
+<pre><code class="language-ruby">class Greeter
+  def initialize(name)
+    @name = name
+  end
+
+  def greet(times = 1)
+    times.times.map { "Hello, " + @name + "!" }
+  end
+end
+
+Greeter.new("Fola").greet(2).each { |line| puts line }
+
+scores = { ada: 92, grace: 88, linus: 75 }
+p scores.keys.select { |name| scores[name] &gt; 80 }
+# =&gt; [:ada, :grace]</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features">
+  <div class="features-inner">
+    <div class="feature">
+      <h2>Feels like Ruby</h2>
+      <p>Fola parses with Prism, the Ruby core team’s own parser, so blocks, classes, modules and string methods read the way you expect.</p>
+    </div>
+    <div class="feature">
+      <h2>Runs on Zig</h2>
+      <p>A bytecode VM with inline caches, a tracing GC and arena-allocated ASTs. It compiles to one binary with no system Ruby needed at runtime.</p>
+    </div>
+    <div class="feature">
+      <h2>Batteries included</h2>
+      <p>JSON, YAML, CSV, files, sockets, HTTP, SQLite, Redis, threads, crypto, i18n and a Rack-style web framework are all built in.</p>
+    </div>
+    <div class="feature">
+      <h2>Everywhere WebAssembly goes</h2>
+      <p>The same interpreter ships as <code>fola-wasi.wasm</code> and <code>fola-web.wasm</code>. The <a href="/play/">playground</a> runs it in your browser.</p>
+    </div>
+  </div>
+</section>
+
+<section class="home-web">
+  <div class="home-web-inner">
+    <div>
+      <h2>A web framework in the box</h2>
+      <p><code>Fola::Web</code> includes routing, middleware, ERB-like templates, static files and WebSockets. This website is built with it: a Fola script renders the Markdown, applies the templates and writes every page.</p>
+      <p><a href="/stdlib/web/">Read the Fola::Web reference →</a></p>
+    </div>
+<pre><code class="language-ruby">require 'fola/web'
+
+get "/hello/:name" do |name|
+  "Hello, " + name + "!"
+end
+
+Fola::Web.call(Fola::Web.app, Fola::Web.env_for("/hello/zig"))
+# =&gt; [200, {"content-type"=&gt;"text/html; charset=utf-8", ...}, ["Hello, zig!"]]</code></pre>
+  </div>
+</section>
+
+<section class="paths">
+  <div class="paths-inner">
+    <h2>Where to next</h2>
+    <div class="path-grid">
+      <a class="path" href="/learn/"><strong>Learn</strong><span>Install Fola, write hello world and learn the basics.</span></a>
+      <a class="path" href="/tutorials/"><strong>Tutorials</strong><span>Hands-on lessons you can run in the playground.</span></a>
+      <a class="path" href="/spec/"><strong>Language spec</strong><span>Syntax, semantics and the type system, precisely.</span></a>
+      <a class="path" href="/stdlib/"><strong>Standard library</strong><span>Every built-in class and module, with what differs from Ruby.</span></a>
+      <a class="path" href="/guides/cli/"><strong>Guides</strong><span>CLI apps, testing, concurrency, databases, FFI and more.</span></a>
+      <a class="path" href="/contribute/"><strong>Contribute</strong><span>Build from source, learn the architecture, send a PR.</span></a>
+    </div>
+  </div>
+</section>
