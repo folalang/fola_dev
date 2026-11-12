@@ -1,0 +1,7 @@
+.git
+.github
+.DS_Store
+content
+templates
+lib
+scripts
