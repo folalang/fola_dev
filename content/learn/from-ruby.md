@@ -38,10 +38,9 @@ library page also note their own gaps.
 | `lambda`, `proc`, `->(x) { }`, `&block` params | Not yet | Pass an object that responds to `call`, or use `yield` |
 | `f(*args)`, `**opts` | Not yet | Pass an Array or a Hash |
 | `def m(a, key: 1)` keyword parameters | Partial | Keyword arguments arrive as one positional Hash; use `opts = {}` and `opts[:key]` |
-| `defined?(x)`, `__method__` | Not yet | — |
+| `defined?(x)`, `__method__`, `block_given?` | Not yet | — |
 | `def +(other)` and other operator methods on your classes | Not yet | Named methods such as `plus(other)` |
 | `x&.length` | Not yet | `x.nil? ? nil : x.length` |
-| Block destructuring `pairs.map { \|a, b\| }` over nested arrays | Not yet | `pairs.map { \|pair\| pair[0] }` (Hash `each { \|k, v\| }` does work) |
 
 ## Semantics
 
@@ -52,7 +51,6 @@ library page also note their own gaps.
 | `p some_class` | `Integer` | `#<Class>`; use `some_class.name` |
 | `puts [1, 2]` | one element per line | prints the inspected array |
 | `"café".length` | `4` characters | `5` (strings are indexed by byte) |
-| `5 === 5`, `Integer === 3` | `true` | `===` is only defined on Ranges and Regexps |
 | `obj.respond_to?(:to_s)` on plain objects | `true` | `false` for methods implemented natively |
 | Huge integer *literals* | fine | literals must fit in 64 bits; arithmetic results grow without limit (`2 ** 100` works) |
 | Output before an uncaught error | flushed | may be lost; rescue errors you want to report |
@@ -65,11 +63,20 @@ The most common missing methods, with replacements:
 |---|---|
 | `String#index`, `#chars`, `#lines`, `#slice`, `#%` | `include?`, `str[i]` in a loop, `split("\n")`, `str[start, len]`, `format` |
 | `String#sub` / `#split` with a Regexp | `gsub` (accepts a Regexp) and `match` |
-| `Array#each_with_index`, `#each_slice`, `#min`, `#max_by`, `#sort_by`, `#partition`, `#each_with_object` | a counter with `each`, `sort { \|a, b\| }`, `select` + `reject`, `inject` |
-| `Hash#select`, `#map`, `#each_with_index` | `hash.keys.select { \|k\| ... }`, `hash.to_a.map { \|pair\| ... }` |
-| `Integer#between?`, `#clamp`, `#to_s(2)` | comparisons; `format("%b", n)` |
+| `Integer#between?`, `#clamp` | comparisons |
+| `===` on Integers and Classes (`Integer === 3`) | `x.is_a?(Integer)` |
 | Changing a String in place (`s << "x"`, `upcase!`, `[]=`) | Strings never change in place: these return a new String and leave the receiver as it was. Reassign: `s += "x"`. See [String](/stdlib/string/) |
 | Lazy regex quantifiers (`.*?`) and multiline anchors | negated classes such as `[^*]+`, and splitting into lines first |
+
+Array, Hash and Range now cover nearly all of Enumerable: `each_with_index`,
+`each_slice`, `each_cons`, `min`/`max`/`minmax`, `min_by`/`max_by`,
+`sort_by`, `partition`, `tally`, `group_by`, `each_with_object`,
+`filter_map`, `flat_map`, `take_while` and more. Called without a block they
+return an `Enumerator`, so `list.map.with_index { |x, i| ... }` works. Hash
+`select`/`reject` return a Hash, and nested arrays destructure into block
+parameters (`pairs.map { |a, b| a + b }`). `Kernel#eval` and `binding` are
+also available. See [Array](/stdlib/array/), [Hash](/stdlib/hash/) and
+[Kernel](/stdlib/kernel/).
 
 If something here blocks you, check the
 [issue tracker](https://github.com/kamalogudah/fola/issues). If it isn't

@@ -4,7 +4,7 @@ description: Install Fola, run your first program and find your way around the t
 order: 0
 ---
 
-Fola is a Ruby-like language that runs on a virtual machine written in Zig.
+Fola is a Ruby-like language with an interpreter written in Zig.
 This page takes you from an empty machine to running your own programs. If you
 just want to try the language, open the [playground](/play/). It runs the
 same interpreter in your browser through WebAssembly.

@@ -358,3 +358,19 @@ pre.install { margin: 0; padding: 12px 16px; font-size: 14px; }
   .pager .next { grid-column: 1; }
   .hero .lede { font-size: 17px; }
 }
+
+/* Benchmark bars (content/learn/benchmarks.md). Widths are set inline as a
+   share of the slowest runtime in each group. */
+.bench { margin: 0 0 24px; display: grid; gap: 14px; }
+.bench-group { display: grid; gap: 4px; }
+.bench-name { font-weight: 600; font-size: 14.5px; }
+.bench-name span { font-weight: 400; color: var(--fg-faint); margin-left: 6px; }
+.bench-row { display: grid; grid-template-columns: 74px 1fr 76px; gap: 10px; align-items: center; font-size: 13.5px; }
+.bench-row em { font-style: normal; color: var(--fg-soft); }
+.bench-row b { font-weight: 500; font-family: var(--mono); font-size: 12.5px; text-align: right; color: var(--fg-soft); }
+.bench-track { height: 12px; border-radius: 3px; background: var(--bg-soft); overflow: hidden; }
+.bench-bar { height: 100%; border-radius: 3px; background: var(--fg-faint); }
+.bench-bar.yjit { background: var(--tok-sym); }
+.bench-bar.fola { background: var(--accent); }
+.bench-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--fg-soft); margin: 0 0 12px; }
+.bench-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }

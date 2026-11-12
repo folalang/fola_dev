@@ -3,7 +3,7 @@
     <div class="hero-copy">
       <p class="eyebrow">v0.0.1 · early development · MIT</p>
       <h1>Ruby’s ergonomics.<br>Zig’s runtime.</h1>
-      <p class="lede">Fola is a Ruby-like programming language with a bytecode VM written in Zig. You get Ruby syntax and a batteries-included standard library, and a single static binary that also compiles to WebAssembly. Gradual typing is on the way.</p>
+      <p class="lede">Fola is a Ruby-like programming language implemented in Zig. You get Ruby syntax, a batteries-included standard library, a REPL, a test framework and a package manager, all in a single static binary that also compiles to WebAssembly. Gradual typing is on the way.</p>
       <div class="cta">
         <a class="button primary" href="/learn/">Get started</a>
         <a class="button" href="/play/">Try it in your browser</a>
@@ -41,7 +41,7 @@ p scores.keys.select { |name| scores[name] &gt; 80 }
     </div>
     <div class="feature">
       <h2>Runs on Zig</h2>
-      <p>A bytecode VM with inline caches, a tracing GC and arena-allocated ASTs. It compiles to one binary with no system Ruby needed at runtime.</p>
+      <p>A tree-walking interpreter with a conservative mark-and-sweep GC and arena-allocated ASTs, with a bytecode VM in progress. It all compiles to one binary that starts in a few milliseconds, with no system Ruby needed at runtime. <a href="/learn/benchmarks/">See how it compares with Ruby →</a></p>
     </div>
     <div class="feature">
       <h2>Batteries included</h2>

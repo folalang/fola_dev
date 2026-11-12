@@ -35,10 +35,10 @@ block that calls `name` on its argument.
 ends the block's current call with `value`. `break value` ends the method
 that the block was passed to, which then returns `value`.
 
-> **Implementation status:** blocks, `yield` and closures over locals are
-> implemented. Array spreading is implemented for Hash iteration but not
-> for nested arrays. `block_given?`, `next` and `break` in blocks, and
-> lambdas and procs are not yet implemented.
+> **Implementation status:** blocks, `yield`, closures over locals and
+> array spreading (for Hash iteration and nested arrays) are implemented.
+> `block_given?`, `next` and `break` in blocks, and lambdas and procs are
+> not yet implemented.
 
 ## Variable scope
 

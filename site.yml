@@ -1,6 +1,6 @@
 title: Fola
 tagline: A Ruby-like language with a Zig heart
-description: Fola is a Ruby-like programming language implemented in Zig, with a bytecode VM, gradual typing, a batteries-included standard library and a WebAssembly runtime.
+description: Fola is a Ruby-like programming language implemented in Zig, with Ruby syntax, gradual typing, a batteries-included standard library and a WebAssembly runtime.
 base_url: https://fola.dev
 repo: https://github.com/kamalogudah/fola
 site_repo: https://github.com/kamalogudah/fola_dev
