@@ -10,7 +10,7 @@ whenever the runtime changes noticeably.
 
 **In short:** Fola starts about 25× faster than Ruby (4 ms vs. 103 ms), and
 its memory use stays flat and small. On long-running compute-heavy code,
-Fola's tree-walking interpreter is about 7-10× slower than CRuby's
+Fola's tree-walking interpreter (as measured before 0.0.2 moved `fola run` to the bytecode VM) is about 7-10× slower than CRuby's
 bytecode VM, and further behind YJIT. For short scripts, where startup
 counts, the gap is 1.3-5×.
 
@@ -129,13 +129,20 @@ Before the collector existed, the same run peaked at 9 GB.
 
 ## Where it's heading
 
-`fola run` executes programs on a tree-walking interpreter. A bytecode
-compiler and VM are being built alongside it. It already runs recursion
-and arithmetic about 45-50× faster than the tree walker (see
-[VM vs. tree-walker benchmarks](/contribute/benchmarks/)). It doesn't yet
-compile classes, blocks or instance variables, so programs don't run on
-it yet. As more of the language moves onto the VM, the numbers on this
-page should improve.
+Since 0.0.2, `fola run` executes programs on the bytecode VM by default.
+It falls back to the tree-walking interpreter for the few programs the
+compiler can't handle yet (`redo`, `when *list`), for `--profile`, and for
+programs that use FolaSpec. `--vm` runs on the VM only, `--tree-walker`
+forces the evaluator, and the `FOLA_ENGINE` environment variable (`vm`,
+`auto`, `tree_walker`) sets the default. The REPL still uses the tree walker.
+
+The 0.0.2 release notes put VM calls at about 2× faster than the tree
+walker on `fola run`, and integer arithmetic, `<`/`>` comparisons and
+literal folding made the `loop`, `fib` and `objects` benchmarks about 20%
+faster. The tables above were measured before the switch, on the tree
+walker, and will be re-measured against the VM. See the
+[VM vs. tree-walker benchmarks](/contribute/benchmarks/) for the
+engine-to-engine comparison.
 
 ## Run them yourself
 

@@ -55,10 +55,9 @@ be declared. Reading one that was never assigned gives `nil`.
 `attr_reader`, `attr_writer` and `attr_accessor` define reader methods,
 writer methods (`name=`), or both.
 
-> **Implementation status:** reopening a user-defined class replaces its
-> earlier methods instead of adding to them, so keep each class in one
-> `class` body. Built-in classes (`String`, `Integer`, ...) can't be
-> reopened yet.
+> **Implementation status:** reopening a user-defined class adds to it as of
+> 0.0.2 (a different superclass raises `TypeError: superclass mismatch`).
+> Built-in classes (`String`, `Integer`, ...) can't be reopened yet.
 
 ## Modules
 
@@ -80,9 +79,9 @@ A module is a namespace and a bundle of methods. It cannot be instantiated.
 class. `extend M` adds `M`'s methods to a single object. Classes and modules
 nest. Write `Outer::Inner` to refer to a nested one.
 
-> **Implementation status:** `include` and module functions are
-> implemented. `extend` and `Outer::Inner` lookups of user-defined nested
-> classes and modules are not yet implemented. Define them at the top level.
+> **Implementation status:** `include`, module functions and `Outer::Inner`
+> lookups of nested classes and modules are implemented as of 0.0.2.
+> `extend` is not yet implemented.
 
 ## Method lookup
 
@@ -120,10 +119,10 @@ A method returns the value of its last expression, or the value given to
 `return`. Default values are evaluated at call time, left to right, and can
 refer to earlier parameters.
 
-> **Implementation status:** required, optional and block-free parameters
-> and endless methods are implemented. Rest (`*rest`, `**opts`) and
-> explicit block (`&block`) parameters are not yet. Keyword arguments
-> arrive as one Hash in the next positional parameter.
+> **Implementation status:** as of 0.0.2, required, optional, rest
+> (`*rest`), keyword, `**opts` and explicit block (`&block`) parameters are
+> implemented, as are endless methods. A missing or unknown keyword raises
+> `ArgumentError`.
 
 ## Visibility
 

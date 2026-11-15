@@ -85,9 +85,10 @@ One-time setup:
 
 ## Interpreter limits the generator works around
 
-The generator only uses what the Fola interpreter supports today, which is
-also a good test of it. It avoids `case`, string interpolation,
-`next`/`break`, `||=`, constants, `String#index`, lazy regex quantifiers
-and keyword arguments. Where a construct is missing, the code uses a
-`while` loop, an `if`/`elsif` chain, or a method instead. As the language
-grows, these places can be simplified.
+The generator only uses what the Fola interpreter supports, which is
+also a good test of it. It was written against 0.0.1, so it still avoids
+`case`, string interpolation, `next`/`break`, `||=`, constants and keyword
+arguments, all of which 0.0.2 supports. It also avoids `String#index` and
+lazy regex quantifiers, which are still missing. Where a construct was
+missing, the code uses a `while` loop, an `if`/`elsif` chain, or a method
+instead. These places can now be simplified.

@@ -74,8 +74,10 @@ An assignment evaluates to the assigned value. A local variable exists from
 the point of its first assignment to the end of its scope. Reading it before
 then is a call to a method of that name.
 
-> **Implementation status:** `||=`, `&&=`, multiple assignment and splats
-> are not yet implemented.
+> **Implementation status:** `||=`, `&&=`, `op=` on indexes and attributes,
+> multiple assignment and destructuring (including nested and splat targets)
+> are implemented as of 0.0.2. Constants (`MAX = 10`) and class variables
+> (`@@count`) are too.
 
 ## Conditionals
 
@@ -101,7 +103,9 @@ end
 `case` tests each `when` with `pattern === value`, in order, and evaluates
 the first matching branch.
 
-> **Implementation status:** `case` is not yet implemented.
+> **Implementation status:** `case`/`when` and `case`/`in` pattern matching
+> are implemented as of 0.0.2. `when *list` isn't supported on the bytecode
+> VM, so a program that uses it runs on the tree walker.
 
 ## Loops
 
@@ -118,9 +122,8 @@ Loops evaluate to `nil` unless `break` gives a value. `break` leaves the
 innermost loop or block, `next` skips to its next iteration, and `redo`
 restarts the current iteration.
 
-> **Implementation status:** `while`, `until`, their modifier forms and
-> `begin ... end while` are implemented. `for`, `break`, `next` and `redo`
-> are not yet implemented.
+> **Implementation status:** all of these are implemented as of 0.0.2.
+> `redo` runs on the tree walker only.
 
 ## Method calls
 
@@ -138,5 +141,5 @@ Arguments are evaluated left to right before the call. Parentheses are
 required when a call with arguments is itself an argument, as in
 `p(f(1), 2)`.
 
-> **Implementation status:** safe navigation (`&.`) and splatted arguments
-> are not yet implemented. Keyword arguments are passed as a trailing Hash.
+> **Implementation status:** safe navigation (`&.`) is not yet implemented.
+> Splatted arguments and keyword arguments are implemented as of 0.0.2.

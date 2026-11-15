@@ -37,8 +37,8 @@ that the block was passed to, which then returns `value`.
 
 > **Implementation status:** blocks, `yield`, closures over locals and
 > array spreading (for Hash iteration and nested arrays) are implemented.
-> `block_given?`, `next` and `break` in blocks, and lambdas and procs are
-> not yet implemented.
+> `block_given?`, `next`, `break` and `return` in blocks are implemented as
+> of 0.0.2. Lambdas and procs are not yet implemented.
 
 ## Variable scope
 
@@ -83,11 +83,11 @@ end
 
 > **Implementation status:** `begin`/`rescue`/`else`/`ensure`, `retry`,
 > `raise` and exception classes are implemented. Modifier `rescue` and
-> `Exception#cause` are not yet implemented. Errors raised by the
-> interpreter itself (an undefined method or variable, a wrong argument
-> count, a type mismatch) end the program and can't yet be rescued as
-> `NoMethodError`, `NameError`, `ArgumentError` or `TypeError`. Only
-> exceptions raised with `raise` can be rescued.
+> `Exception#cause` are not yet implemented. As of 0.0.2, errors raised by
+> the interpreter itself are ordinary exceptions you can rescue:
+> `ZeroDivisionError`, `NoMethodError`, `ArgumentError`, `TypeError`,
+> `NameError`, `LocalJumpError` and `SystemStackError` (runaway recursion).
+> An uncaught exception's report names its class and lists a backtrace.
 
 ## Program structure
 
@@ -100,5 +100,5 @@ finishes and `1` on an uncaught exception. `exit(status)` ends it early.
 `/` loads that Fola file, adding `.fola` when the name has no extension.
 `load "file.fola"` evaluates the file every time it is called.
 
-> **Implementation status:** `require_relative` is not yet implemented;
-> use `require "./path"` relative to the working directory.
+> **Implementation status:** `require_relative` is implemented as of 0.0.2
+> and resolves next to the file that calls it.

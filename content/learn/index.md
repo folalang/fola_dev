@@ -87,9 +87,8 @@ end
 
 If you know Ruby, this reads the way you'd expect. Fola uses Ruby's syntax,
 parsed by [Prism](https://github.com/ruby/prism), the Ruby core team's own
-parser. Some Ruby features aren't implemented yet. For example, this program
-builds strings with `+` because string interpolation (`"#{x}"`) isn't
-supported yet. [Coming from Ruby](/learn/from-ruby/) lists every difference.
+parser. Some Ruby features aren't implemented yet, such as `lambda`, `private`
+and `extend`. [Coming from Ruby](/learn/from-ruby/) lists every difference.
 
 ## The interactive shell
 

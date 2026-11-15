@@ -6,7 +6,8 @@
 #
 # Interpreter constraints this file works around (see README):
 # no `case`, string interpolation, `next`/`break`, `||=`, `String#<<`,
-# lazy regex quantifiers, `sub` with a Regexp, Array#[start, len] or constants.
+# lazy regex quantifiers, `sub` with a Regexp, Array#[start, len] or constants
+# (written for 0.0.1; 0.0.2 supports most of these, so it can be simplified).
 
 # Per-page rendering state: link rewriting, heading ids and the page outline.
 class MarkdownContext

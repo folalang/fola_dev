@@ -46,8 +46,13 @@ p "hello"[0], "hello"[1, 3]
 ```
 
 Double-quoted strings process escapes such as `\n` and `\t`; single-quoted
-strings are taken literally. String interpolation (`"#{x}"`) isn't
-supported yet. Use `+` with `to_s`, or `format`.
+strings are taken literally. Double-quoted strings support interpolation
+(`"#{x}"`), which calls `to_s` on the value.
+
+```fola
+name = "Fola"
+puts "Hello, #{name}! 2 + 2 = #{2 + 2}"
+```
 
 ## Numbers
 
@@ -130,7 +135,24 @@ end
 p count
 ```
 
-`case`/`when` isn't supported yet; chain `if`/`elsif` instead.
+`case`/`when` tests each branch with `===`, so it matches ranges, classes
+and regular expressions as well as plain values:
+
+```fola
+def describe(n)
+  case n
+  when 0 then "zero"
+  when 1..9 then "small"
+  when Integer then "big"
+  else "not a number"
+  end
+end
+
+puts describe(0), describe(5), describe(50)
+```
+
+`break` and `next` work in loops and blocks, and `for x in list` and
+`loop do ... end` are available too.
 
 ## Methods
 

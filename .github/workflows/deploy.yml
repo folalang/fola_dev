@@ -51,7 +51,12 @@ jobs:
         working-directory: fola
         run: zig build -Doptimize=ReleaseSafe
 
+      # The web-app tutorial's route blocks capture locals and run after the
+      # block that defined them returned, which the bytecode VM (the default
+      # engine since Fola 0.0.2) can't do yet. Run the examples on the tree walker.
       - name: Check runnable examples
+        env:
+          FOLA_ENGINE: tree_walker
         run: scripts/check-examples.sh "$GITHUB_WORKSPACE/fola/zig-out/bin/fola"
 
       - name: Build site

@@ -11,7 +11,7 @@ language, start with [A tour of Fola](/learn/tour/).
 
 ## Status
 
-This is a **working draft** that tracks Fola 0.0.1. Fola adopts Ruby's
+This is a **working draft** that tracks Fola 0.0.2. Fola adopts Ruby's
 surface syntax and much of its object model, so this document only spells
 out a rule in full where Fola defines it differently or more precisely.
 Elsewhere it refers to Ruby 3.3 behaviour.
