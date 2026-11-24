@@ -57,7 +57,9 @@ writer methods (`name=`), or both.
 
 > **Implementation status:** reopening a user-defined class adds to it as of
 > 0.0.2 (a different superclass raises `TypeError: superclass mismatch`).
-> Built-in classes (`String`, `Integer`, ...) can't be reopened yet.
+> As of 0.0.3, built-in classes (`String`, `Integer`, `Array`, ...) can be
+> reopened to add methods; a method they already have isn't replaced yet.
+> `class << self` and `def obj.name` are also supported as of 0.0.3.
 
 ## Modules
 

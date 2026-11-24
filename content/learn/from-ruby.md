@@ -10,8 +10,8 @@ and `retry`, statement modifiers, ranges, symbols, and much of the core
 library. Fola is young, though, and the interpreter doesn't run all of
 Ruby yet.
 
-This page lists the differences you're most likely to hit in Fola 0.0.2,
-each with a workaround. Every item was checked against the 0.0.2
+This page lists the differences you're most likely to hit in Fola 0.0.3,
+each with a workaround. Every item was checked against the 0.0.3
 interpreter, and the list shrinks with each release. The
 [Kernel reference](/stdlib/kernel/#not-yet-supported) and each standard
 library page also note their own gaps.
@@ -20,18 +20,23 @@ library page also note their own gaps.
 
 | Ruby | Status in Fola | Instead |
 |---|---|---|
-| `expr rescue fallback` | Not yet | A `begin`/`rescue` block |
-| `class << self` | Not yet | `def self.name` |
-| Reopening a built-in class (`class String; def shout ...`) | Not yet. Reopening your own classes works. | Put helpers for built-ins in a module (`Text.shout(s)`) |
+| Redefining a method a built-in class already has (`class String; def upcase ...`) | Not yet. Adding new methods to built-ins works since 0.0.3. | Use a new method name |
 | `extend` | Not yet | `include`, or define `def self.name` methods |
 | `private`, `protected` | Not yet | All methods are public; prefix internal ones with `_` by convention |
-| `lambda`, `proc`, `->(x) { }` | Not yet. `&block` parameters work. | Pass a block and take it as `&blk`, or pass an object that responds to `call` |
-| `defined?(x)`, `__method__` | Not yet | — |
+| `__method__` | Not yet | — |
 | `not x` | Not yet | `!x` |
 | `def +(other)` and other operator methods on your classes | Not yet | Named methods such as `plus(other)` |
 | `x&.length` | Not yet | `x.nil? ? nil : x.length` |
 | `a !~ b` | Not yet | `!(a =~ b)` |
 | `Exception#cause` | Not yet | — |
+
+Supported since 0.0.3: the `rescue` modifier (`expr rescue fallback`),
+`class << self`, `def obj.name`, `alias` and `alias_method`, `A::B = value`,
+beginless and endless ranges (`(..5)`, `(1..)`), `__FILE__` and `__LINE__`,
+`defined?`, `lambda`, `proc` and `->(x) { }`, `method_missing`, `Class.new`,
+splat in call arguments (`foo(*args)`), `Comparable`, `require_relative`,
+and reopening built-in classes to add methods. Some of these run on the tree
+walker only, which `fola run` falls back to automatically.
 
 Supported since 0.0.2: string interpolation (`"Hi #{name}"`, `"a#@x"`),
 adjacent string literals, `case`/`when`, `case`/`in` pattern matching,

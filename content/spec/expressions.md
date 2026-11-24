@@ -52,8 +52,8 @@ Integer division and modulo **floor** toward negative infinity:
 
 > **Implementation status:** Integer `/` truncates toward zero
 > (`-7 / 2 == -3`), but `%` floors. `===` is only defined on Range and
-> Regexp, and `!~` is not yet implemented. `not`, `defined?` and modifier
-> `rescue` are not yet implemented. User-defined operator methods
+> Regexp, and `!~` is not yet implemented. `not` is not yet implemented.
+> `defined?` and modifier `rescue` are implemented as of 0.0.3. User-defined operator methods
 > (`def +(other)`) are not yet dispatched.
 
 ## Assignment

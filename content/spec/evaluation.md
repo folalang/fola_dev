@@ -38,7 +38,8 @@ that the block was passed to, which then returns `value`.
 > **Implementation status:** blocks, `yield`, closures over locals and
 > array spreading (for Hash iteration and nested arrays) are implemented.
 > `block_given?`, `next`, `break` and `return` in blocks are implemented as
-> of 0.0.2. Lambdas and procs are not yet implemented.
+> of 0.0.2. Lambdas and procs (`lambda { }`, `proc { }`, `->(x) { }`) are implemented
+> as of 0.0.3, on the tree walker.
 
 ## Variable scope
 
@@ -82,8 +83,8 @@ end
 ```
 
 > **Implementation status:** `begin`/`rescue`/`else`/`ensure`, `retry`,
-> `raise` and exception classes are implemented. Modifier `rescue` and
-> `Exception#cause` are not yet implemented. As of 0.0.2, errors raised by
+> `raise` and exception classes are implemented. Modifier `rescue` is implemented as of 0.0.3.
+> `Exception#cause` is not yet implemented. As of 0.0.2, errors raised by
 > the interpreter itself are ordinary exceptions you can rescue:
 > `ZeroDivisionError`, `NoMethodError`, `ArgumentError`, `TypeError`,
 > `NameError`, `LocalJumpError` and `SystemStackError` (runaway recursion).
